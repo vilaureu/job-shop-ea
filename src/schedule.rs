@@ -16,6 +16,33 @@ impl<'c> Schedule<'c> {
         Self { conf, schedule }
     }
 
+    pub(crate) fn crossover(&self, other: &Self, mut rng: impl Rng) -> Self {
+        let mut schedule = Vec::with_capacity(self.schedule.len());
+        let cut = rng.gen_range(0..=self.schedule.len());
+
+        let mut left: Vec<_> = self.conf.jobs.iter().map(|j| j.len()).collect();
+        for i in 0..cut {
+            let job = self.schedule[i];
+            schedule.push(job);
+            left[job] -= 1;
+        }
+        for i in 0..self.schedule.len() {
+            let job = other.schedule[i];
+            if left[job] == 0 {
+                continue;
+            }
+
+            schedule.push(job);
+            left[job] -= 1;
+        }
+        debug_assert_eq!(left.iter().sum::<usize>(), 0);
+
+        Self {
+            conf: self.conf,
+            schedule,
+        }
+    }
+
     pub(crate) fn evaluate(&self) -> u64 {
         let mut job_indices = vec![0; self.conf.jobs.len()];
         let mut times_job = vec![0u64; self.conf.jobs.len()];

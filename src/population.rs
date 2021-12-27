@@ -35,6 +35,11 @@ impl<'c> Population<'c> {
         for _ in 0..self.conf.couples {
             let parent_a = &self.population[dist.sample(&mut self.rng)];
             let parent_b = &self.population[dist.sample(&mut self.rng)];
+
+            let child_a = parent_a.crossover(parent_b, self.rng.clone());
+            let child_b = parent_b.crossover(parent_a, self.rng.clone());
+            self.population.push(child_a);
+            self.population.push(child_b);
         }
 
         Ok(())
