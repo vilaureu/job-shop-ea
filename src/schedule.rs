@@ -13,7 +13,9 @@ impl<'c> Schedule<'c> {
         let mut schedule = conf.ordered_schedule.clone();
         schedule.shuffle(&mut rng);
 
-        Self { conf, schedule }
+        let s = Self { conf, schedule };
+        s.verify();
+        s
     }
 
     pub(crate) fn crossover(&self, other: &Self, mut rng: impl Rng) -> Self {
@@ -37,10 +39,12 @@ impl<'c> Schedule<'c> {
         }
         debug_assert_eq!(left.iter().sum::<usize>(), 0);
 
-        Self {
+        let child = Self {
             conf: self.conf,
             schedule,
-        }
+        };
+        child.verify();
+        child
     }
 
     pub(crate) fn evaluate(&self) -> u64 {
@@ -66,4 +70,14 @@ impl<'c> Schedule<'c> {
         assert_ne!(0, time_max);
         time_max
     }
+
+    #[cfg(debug_assertions)]
+    fn verify(&self) {
+        let mut sorted = self.schedule.clone();
+        sorted.sort();
+        assert_eq!(self.conf.ordered_schedule, sorted);
+    }
+
+    #[cfg(not(debug_assertions))]
+    fn verify(&self) {}
 }
