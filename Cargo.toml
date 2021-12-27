@@ -7,3 +7,4 @@ description = "Job-shop scheduling solver using an evolutionary algorithm."
 
 [dependencies]
 structopt = { version = "0.3", default-features = false, features = ["color"] }
+anyhow = "1.0"
