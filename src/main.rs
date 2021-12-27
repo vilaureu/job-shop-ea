@@ -1,3 +1,10 @@
+mod opt;
+
+use opt::Opt;
+use structopt::StructOpt;
+
 fn main() {
-    println!("Hello, world!");
+    let opt = Opt::from_args();
+
+    println!("{:?}", opt);
 }
