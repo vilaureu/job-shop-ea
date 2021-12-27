@@ -44,4 +44,10 @@ impl<'c> Population<'c> {
 
         Ok(())
     }
+
+    pub(crate) fn mutate(&mut self) {
+        for individual in &mut self.population {
+            individual.mutate(&mut self.rng);
+        }
+    }
 }

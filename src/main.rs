@@ -22,11 +22,12 @@ fn main() -> anyhow::Result<()> {
         Some(seed) => SmallRng::seed_from_u64(seed),
         None => SmallRng::from_entropy(),
     };
-    let mut conf = (&opt).into();
+    let mut conf = Config::from_opt(&opt)?;
     parse_file(&opt.file, &mut conf)?;
 
     let mut population = Population::new(&conf, rng);
     population.recombine()?;
+    population.mutate();
 
     Ok(())
 }

@@ -20,4 +20,8 @@ pub(crate) struct Opt {
     /// Set number of couples
     #[structopt(short, long, default_value = "40")]
     pub(crate) couples: usize,
+
+    /// Set chance of mutation in an individual
+    #[structopt(short, long, default_value = "0.2")]
+    pub(crate) mutation_chance: f64,
 }

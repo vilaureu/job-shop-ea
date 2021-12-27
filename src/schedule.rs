@@ -1,4 +1,7 @@
-use rand::{prelude::SliceRandom, Rng};
+use rand::{
+    prelude::{Distribution, SliceRandom},
+    Rng,
+};
 
 use crate::cfg::Config;
 
@@ -45,6 +48,17 @@ impl<'c> Schedule<'c> {
         };
         child.verify();
         child
+    }
+
+    pub(crate) fn mutate(&mut self, mut rng: impl Rng) {
+        if !self.conf.mutation_dist.sample(&mut rng) {
+            return;
+        }
+
+        let op_a = rng.gen_range(0..self.schedule.len());
+        let op_b = rng.gen_range(0..self.schedule.len());
+        self.schedule.swap(op_a, op_b);
+        self.verify();
     }
 
     pub(crate) fn evaluate(&self) -> u64 {
