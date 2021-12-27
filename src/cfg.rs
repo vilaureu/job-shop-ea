@@ -1,4 +1,4 @@
-use anyhow::Context;
+use anyhow::{bail, Context};
 use rand::distributions::Bernoulli;
 
 use crate::opt::Opt;
@@ -22,6 +22,9 @@ pub(crate) struct Config {
 
 impl Config {
     pub(crate) fn from_opt(opt: &Opt) -> anyhow::Result<Self> {
+        if opt.population == 0 {
+            bail!("population size must not be zero");
+        }
         let mutation_dist = Bernoulli::new(opt.mutation_chance).with_context(|| {
             format!(
                 "mutation change {} is not in range [0, 1]",

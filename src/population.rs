@@ -1,3 +1,5 @@
+use std::cmp::Reverse;
+
 use anyhow::Context;
 use rand::{
     distributions::WeightedIndex,
@@ -49,5 +51,41 @@ impl<'c> Population<'c> {
         for individual in &mut self.population {
             individual.mutate(&mut self.rng);
         }
+    }
+
+    pub(crate) fn select(&mut self) -> (&Schedule<'c>, u64) {
+        let mut evaluated: Vec<_> = self
+            .population
+            .iter()
+            .map(|s| s.evaluate())
+            .enumerate()
+            .collect();
+        evaluated.sort_by_key(|(_, e)| *e);
+        evaluated.truncate(self.conf.population);
+        let best_before = evaluated[0].0;
+        let best_time = evaluated[0].1;
+        evaluated.sort_by_key(|f| Reverse(f.0));
+
+        let mut curr = 0;
+        let mut retained = 0;
+        let mut best_after = 0;
+        self.population.retain(|_| {
+            let retain = match evaluated.last() {
+                Some((i, _)) if *i == curr => {
+                    if curr == best_before {
+                        best_after = retained;
+                    }
+                    evaluated.pop();
+                    retained += 1;
+                    true
+                }
+                _ => false,
+            };
+            curr += 1;
+            retain
+        });
+        assert_eq!(self.conf.population, self.population.len());
+
+        (&self.population[best_after], best_time)
     }
 }

@@ -26,8 +26,10 @@ fn main() -> anyhow::Result<()> {
     parse_file(&opt.file, &mut conf)?;
 
     let mut population = Population::new(&conf, rng);
+
     population.recombine()?;
     population.mutate();
+    println!("{}", population.select().1);
 
     Ok(())
 }
