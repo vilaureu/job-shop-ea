@@ -11,6 +11,7 @@ pub(crate) type Jobs = Vec<Vec<Operation>>;
 pub(crate) struct Config {
     pub(crate) jobs: Jobs,
     pub(crate) machines: usize,
+    pub(crate) ordered_schedule: Vec<usize>,
     pub(crate) population: usize,
 }
 

@@ -1,5 +1,7 @@
 mod cfg;
 mod opt;
+mod population;
+mod schedule;
 
 use std::{
     fs::File,
@@ -10,14 +12,21 @@ use std::{
 use anyhow::{bail, Context};
 use cfg::{Config, Operation};
 use opt::Opt;
+use population::Population;
+use rand::{prelude::SmallRng, SeedableRng};
 use structopt::StructOpt;
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
+    let rng = match opt.seed {
+        Some(seed) => SmallRng::seed_from_u64(seed),
+        None => SmallRng::from_entropy(),
+    };
     let mut conf = (&opt).into();
     parse_file(&opt.file, &mut conf)?;
 
-    println!("{:?}", conf);
+    let population = Population::new(&conf, rng);
+    println!("{:?}", population);
 
     Ok(())
 }
@@ -38,6 +47,7 @@ fn parse_file(path: &Path, mut conf: &mut Config) -> anyhow::Result<()> {
 
     let mut jobs = vec![];
     let mut machines = 0;
+    let mut ordered_schedule = vec![];
     for line in lines {
         let line = line.with_context(read_failed)?;
         let mut job = vec![];
@@ -61,10 +71,12 @@ fn parse_file(path: &Path, mut conf: &mut Config) -> anyhow::Result<()> {
             job.push(Operation { duration, machine });
             machines = machines.max(machine + 1);
         }
+        ordered_schedule.extend((0..job.len()).map(|_| jobs.len()));
         jobs.push(job);
     }
 
     conf.jobs = jobs;
     conf.machines = machines;
+    conf.ordered_schedule = ordered_schedule;
     Ok(())
 }
