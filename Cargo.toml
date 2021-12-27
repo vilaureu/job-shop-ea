@@ -1,0 +1,8 @@
+[package]
+name = "job-shop-ea"
+version = "0.1.0"
+edition = "2021"
+authors = ["vilaureu"]
+description = "Job-shop scheduling solver using an evolutionary algorithm."
+
+[dependencies]
