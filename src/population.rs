@@ -1,4 +1,8 @@
-use rand::prelude::SmallRng;
+use anyhow::Context;
+use rand::{
+    distributions::WeightedIndex,
+    prelude::{Distribution, SmallRng},
+};
 
 use crate::{cfg::Config, schedule::Schedule};
 
@@ -21,5 +25,18 @@ impl<'c> Population<'c> {
             population,
             rng,
         }
+    }
+
+    pub(crate) fn recombine(&mut self) -> anyhow::Result<()> {
+        let fitnesses = self.population.iter().map(|s| 1.0 / s.evaluate() as f32);
+        let dist = WeightedIndex::new(fitnesses)
+            .context("cannot create weighted distribution over fitnesses")?;
+
+        for _ in 0..self.conf.couples {
+            let parent_a = &self.population[dist.sample(&mut self.rng)];
+            let parent_b = &self.population[dist.sample(&mut self.rng)];
+        }
+
+        Ok(())
     }
 }

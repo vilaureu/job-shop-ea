@@ -25,8 +25,8 @@ fn main() -> anyhow::Result<()> {
     let mut conf = (&opt).into();
     parse_file(&opt.file, &mut conf)?;
 
-    let population = Population::new(&conf, rng);
-    println!("{:?}", population);
+    let mut population = Population::new(&conf, rng);
+    population.recombine()?;
 
     Ok(())
 }
@@ -42,7 +42,7 @@ fn parse_file(path: &Path, mut conf: &mut Config) -> anyhow::Result<()> {
         Some(e) => {
             e.with_context(read_failed)?;
         }
-        None => return Ok(()),
+        None => bail!("{:?} is empty", path),
     }
 
     let mut jobs = vec![];
@@ -73,6 +73,10 @@ fn parse_file(path: &Path, mut conf: &mut Config) -> anyhow::Result<()> {
         }
         ordered_schedule.extend((0..job.len()).map(|_| jobs.len()));
         jobs.push(job);
+    }
+
+    if ordered_schedule.is_empty() {
+        bail!("{:?} does not contain any operation", path)
     }
 
     conf.jobs = jobs;

@@ -16,4 +16,8 @@ pub(crate) struct Opt {
     /// Set population size
     #[structopt(short, long, default_value = "100")]
     pub(crate) population: usize,
+
+    /// Set number of couples
+    #[structopt(short, long, default_value = "40")]
+    pub(crate) couples: usize,
 }

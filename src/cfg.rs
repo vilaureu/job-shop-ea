@@ -13,12 +13,14 @@ pub(crate) struct Config {
     pub(crate) machines: usize,
     pub(crate) ordered_schedule: Vec<usize>,
     pub(crate) population: usize,
+    pub(crate) couples: usize,
 }
 
 impl From<&Opt> for Config {
     fn from(opt: &Opt) -> Self {
         Self {
             population: opt.population,
+            couples: opt.couples,
             ..Default::default()
         }
     }
