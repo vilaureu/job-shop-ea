@@ -98,7 +98,7 @@ impl<'c> Schedule<'c> {
     #[cfg(debug_assertions)]
     fn verify(&self) {
         let mut sorted = self.schedule.clone();
-        sorted.sort();
+        sorted.sort_unstable();
         assert_eq!(self.conf.ordered_schedule, sorted);
     }
 

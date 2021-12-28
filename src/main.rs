@@ -25,10 +25,7 @@ const PRINT_EVERY: Duration = Duration::from_secs(2);
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-    let rng = match opt.seed {
-        Some(seed) => SmallRng::seed_from_u64(seed),
-        None => SmallRng::from_entropy(),
-    };
+    let rng = SmallRng::from_entropy();
     let mut conf = Config::from_opt(&opt)?;
     parse_file(&opt.file, &mut conf)?;
 
@@ -47,12 +44,7 @@ fn main() -> anyhow::Result<()> {
     let mut best = None;
     let mut i = 0;
     loop {
-        if terminate.load(Relaxed)
-            || match opt.iterations {
-                Some(iters) if i >= iters => true,
-                _ => false,
-            }
-        {
+        if terminate.load(Relaxed) || matches!(opt.iterations, Some(iters) if i >= iters) {
             break;
         }
 

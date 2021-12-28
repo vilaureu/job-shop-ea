@@ -10,3 +10,4 @@ anyhow = "1.0"
 rand = { version = "0.8", features = ["small_rng"] }
 structopt = { version = "0.3", default-features = false, features = ["color"] }
 ctrlc = { version = "3.2", features = ["termination"] }
+rayon = "1.5"
