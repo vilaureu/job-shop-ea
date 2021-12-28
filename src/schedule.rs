@@ -64,27 +64,35 @@ impl<'c> Schedule<'c> {
     }
 
     pub(crate) fn evaluate(&self) -> u64 {
+        let mut time_max = 0;
+        self.visit_schedule(|job, op_idx, time| {
+            let operation = &self.conf.jobs[job][op_idx];
+            time_max = time_max.max(time + operation.duration);
+        });
+
+        assert_ne!(0, time_max);
+        time_max
+    }
+
+    fn visit_schedule(&self, mut f: impl FnMut(usize, usize, u64)) {
         let mut job_indices = vec![0; self.conf.jobs.len()];
         let mut times_job = vec![0u64; self.conf.jobs.len()];
         let mut times_mach = vec![0u64; self.conf.machines];
 
-        let mut time_max = 0;
         for &job in &self.schedule {
-            let operation = &self.conf.jobs[job][job_indices[job]];
+            let op_idx = job_indices[job];
+            let operation = &self.conf.jobs[job][op_idx];
 
             let time_job = &mut times_job[job];
             let time_mach = &mut times_mach[operation.machine];
-            let time = *time_job.max(time_mach) + operation.duration;
+            let time = *time_job.max(time_mach);
+            f(job, op_idx, time);
 
+            let time = time + operation.duration;
             *time_mach = time;
             *time_job = time;
             job_indices[job] += 1;
-
-            time_max = time_max.max(time)
         }
-
-        assert_ne!(0, time_max);
-        time_max
     }
 
     #[cfg(debug_assertions)]
@@ -100,6 +108,24 @@ impl<'c> Schedule<'c> {
 
 impl<'c> fmt::Display for Schedule<'c> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{:?}", self.schedule)
+        let mut machines = vec![vec![]; self.conf.machines];
+
+        self.visit_schedule(|job, op_idx, time| {
+            let operation = &self.conf.jobs[job][op_idx];
+
+            machines[operation.machine].push((job, op_idx, time));
+        });
+
+        for (i, machine) in machines.iter().enumerate() {
+            if i != 0 {
+                writeln!(f)?;
+            }
+            write!(f, "M{}:", i)?;
+            for (job, operation, time) in machine {
+                write!(f, " {}/{}@{}", job, operation, time)?;
+            }
+        }
+
+        Ok(())
     }
 }

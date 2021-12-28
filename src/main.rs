@@ -55,12 +55,12 @@ fn main() -> anyhow::Result<()> {
         if best.as_ref().map_or(true, |(_, s)| curr.1 < *s) {
             best = Some((curr.0.clone(), curr.1));
         }
-        eprintln!("Current best score: {}", best.as_ref().unwrap().1);
+        eprintln!("Current time: {}, best: {}", curr.1, best.as_ref().unwrap().1);
     }
-    eprintln!("--------");
+    eprintln!("--------------------");
 
     if let Some(best) = best {
-        println!("Best schedule with score {}:", best.1);
+        println!("Best schedule with time {}:", best.1);
         println!("{}", best.0);
     }
 
