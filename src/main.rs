@@ -11,6 +11,7 @@ use std::{
         atomic::{AtomicBool, Ordering::Relaxed},
         Arc,
     },
+    time::{Duration, Instant},
 };
 
 use anyhow::{bail, Context};
@@ -19,6 +20,8 @@ use opt::Opt;
 use population::Population;
 use rand::{prelude::SmallRng, SeedableRng};
 use structopt::StructOpt;
+
+const PRINT_EVERY: Duration = Duration::from_secs(2);
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
@@ -39,28 +42,49 @@ fn main() -> anyhow::Result<()> {
         Ok(_) => {}
     }
 
+    let start = Instant::now();
+    let mut last_print: Option<Instant> = None;
     let mut best = None;
     let mut i = 0;
-    while !terminate.load(Relaxed) && match opt.iterations {
-        Some(iters) if i < iters => {
-            i += 1;
-            true
+    loop {
+        if terminate.load(Relaxed)
+            || match opt.iterations {
+                Some(iters) if i >= iters => true,
+                _ => false,
+            }
+        {
+            break;
         }
-        Some(_) => false,
-        None => true,
-    } {
+
         population.recombine()?;
         population.mutate();
         let curr = population.select();
         if best.as_ref().map_or(true, |(_, s)| curr.1 < *s) {
             best = Some((curr.0.clone(), curr.1));
         }
-        eprintln!("Current time: {}, best: {}", curr.1, best.as_ref().unwrap().1);
+
+        if last_print.map_or(true, |l| l.elapsed() >= PRINT_EVERY) {
+            eprintln!(
+                "Current time: {}, best: {}, iteration: {}, elapsed {} s",
+                curr.1,
+                best.as_ref().unwrap().1,
+                i,
+                start.elapsed().as_secs()
+            );
+            last_print = Some(Instant::now());
+        }
+
+        i += 1;
     }
     eprintln!("--------------------");
 
     if let Some(best) = best {
-        println!("Best schedule with time {}:", best.1);
+        println!(
+            "Best schedule with time {} after {} iterations or {} seconds:",
+            best.1,
+            i,
+            start.elapsed().as_secs()
+        );
         println!("{}", best.0);
     }
 
