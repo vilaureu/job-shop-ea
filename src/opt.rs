@@ -13,15 +13,19 @@ pub(crate) struct Opt {
     #[structopt(short, long)]
     pub(crate) seed: Option<u64>,
 
+    /// Set number of iterations [default: infinite]
+    #[structopt(short, long)]
+    pub(crate) iterations: Option<u64>,
+
     /// Set population size
-    #[structopt(short, long, default_value = "100")]
+    #[structopt(short, long, default_value = "1000")]
     pub(crate) population: usize,
 
     /// Set number of couples
-    #[structopt(short, long, default_value = "40")]
+    #[structopt(short, long, default_value = "400")]
     pub(crate) couples: usize,
 
     /// Set chance of mutation in an individual
-    #[structopt(short, long, default_value = "0.2")]
+    #[structopt(short, long, default_value = "0.1")]
     pub(crate) mutation_chance: f64,
 }

@@ -7,6 +7,10 @@ use std::{
     fs::File,
     io::{BufRead, BufReader},
     path::Path,
+    sync::{
+        atomic::{AtomicBool, Ordering::Relaxed},
+        Arc,
+    },
 };
 
 use anyhow::{bail, Context};
@@ -27,9 +31,38 @@ fn main() -> anyhow::Result<()> {
 
     let mut population = Population::new(&conf, rng);
 
-    population.recombine()?;
-    population.mutate();
-    println!("{}", population.select().1);
+    let terminate = Arc::new(AtomicBool::new(false));
+    let terminate_clone = terminate.clone();
+    match ctrlc::set_handler(move || terminate_clone.store(true, Relaxed)) {
+        Err(e) if opt.iterations.is_none() => Err(e).context("cannot create interrupt handler")?,
+        Err(_) => eprintln!("cannot create interrupt handler"),
+        Ok(_) => {}
+    }
+
+    let mut best = None;
+    let mut i = 0;
+    while !terminate.load(Relaxed) && match opt.iterations {
+        Some(iters) if i < iters => {
+            i += 1;
+            true
+        }
+        Some(_) => false,
+        None => true,
+    } {
+        population.recombine()?;
+        population.mutate();
+        let curr = population.select();
+        if best.as_ref().map_or(true, |(_, s)| curr.1 < *s) {
+            best = Some((curr.0.clone(), curr.1));
+        }
+        eprintln!("Current best score: {}", best.as_ref().unwrap().1);
+    }
+    eprintln!("--------");
+
+    if let Some(best) = best {
+        println!("Best schedule with score {}:", best.1);
+        println!("{}", best.0);
+    }
 
     Ok(())
 }

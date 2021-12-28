@@ -1,3 +1,5 @@
+use std::fmt;
+
 use rand::{
     prelude::{Distribution, SliceRandom},
     Rng,
@@ -5,7 +7,7 @@ use rand::{
 
 use crate::cfg::Config;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub(crate) struct Schedule<'c> {
     conf: &'c Config,
     schedule: Vec<usize>,
@@ -94,4 +96,10 @@ impl<'c> Schedule<'c> {
 
     #[cfg(not(debug_assertions))]
     fn verify(&self) {}
+}
+
+impl<'c> fmt::Display for Schedule<'c> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{:?}", self.schedule)
+    }
 }
