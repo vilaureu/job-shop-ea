@@ -7,7 +7,8 @@ description = "Job-shop scheduling solver using an evolutionary algorithm."
 
 [dependencies]
 anyhow = "1.0"
-rand = { version = "0.8", features = ["small_rng"] }
-structopt = { version = "0.3", default-features = false, features = ["color"] }
 ctrlc = { version = "3.2", features = ["termination"] }
+rand = { version = "0.8", features = ["small_rng"] }
+rand_xoshiro = "0.6.0"
 rayon = "1.5"
+structopt = { version = "0.3", default-features = false, features = ["color"] }

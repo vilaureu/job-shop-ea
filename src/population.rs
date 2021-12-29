@@ -1,30 +1,32 @@
 use std::cmp::Reverse;
 
 use anyhow::Context;
-use rand::{
-    distributions::WeightedIndex,
-    prelude::{Distribution, SmallRng},
-    SeedableRng,
-};
+use rand::{distributions::WeightedIndex, prelude::Distribution};
+use rand_xoshiro::Xoshiro256PlusPlus;
 use rayon::{
-    iter::{IndexedParallelIterator, IntoParallelRefIterator, ParallelBridge, ParallelIterator},
+    iter::{
+        IndexedParallelIterator, IntoParallelIterator, IntoParallelRefIterator,
+        IntoParallelRefMutIterator, ParallelIterator,
+    },
     slice::ParallelSliceMut,
 };
 
 use crate::{cfg::Config, schedule::Schedule};
 
+pub(crate) type FastRng = Xoshiro256PlusPlus;
+
 #[derive(Debug)]
 pub(crate) struct Population<'c> {
     conf: &'c Config,
     population: Vec<Schedule<'c>>,
-    rng: SmallRng,
+    rng: FastRng,
 }
 
 impl<'c> Population<'c> {
-    pub(crate) fn new(conf: &'c Config, mut rng: SmallRng) -> Self {
-        let population = (0..conf.population)
-            .map(|_| SmallRng::from_rng(&mut rng).expect("seeding rng failed"))
-            .par_bridge()
+    pub(crate) fn new(conf: &'c Config, mut rng: FastRng) -> Self {
+        let rngs = gen_rngs(&mut rng, conf.population);
+        let population = rngs
+            .into_par_iter()
             .map(|rng| Schedule::new(conf, rng))
             .collect();
 
@@ -44,31 +46,27 @@ impl<'c> Population<'c> {
         let dist = WeightedIndex::new(fitnesses)
             .context("cannot create weighted distribution over fitnesses")?;
 
-        let next_gen: Vec<_> = SwappedIter::new((0..self.conf.couples).map(|_| {
-            (
-                &self.population[dist.sample(&mut self.rng)],
-                &self.population[dist.sample(&mut self.rng)],
-                SmallRng::from_rng(&mut self.rng).expect("seeding rng failed"),
-            )
-        }))
-        .par_bridge()
-        .map(|(parent_a, parent_b, rng)| parent_a.crossover(parent_b, rng))
-        .collect();
+        let rngs = gen_rngs(&mut self.rng, self.conf.couples);
+        let next_gen: Vec<_> = rngs
+            .into_par_iter()
+            .flat_map(|mut rng| {
+                let parent_a = &self.population[dist.sample(&mut rng)];
+                let parent_b = &self.population[dist.sample(&mut rng)];
+                let child_a = parent_a.crossover(parent_b, rng.clone());
+                let child_b = parent_b.crossover(parent_a, rng);
+                [child_a, child_b]
+            })
+            .collect();
         self.population.extend(next_gen);
 
         Ok(())
     }
 
     pub(crate) fn mutate(&mut self) {
+        let rngs = gen_rngs(&mut self.rng, self.population.len());
         self.population
-            .iter_mut()
-            .map(|i| {
-                (
-                    i,
-                    SmallRng::from_rng(&mut self.rng).expect("seeding rng failed"),
-                )
-            })
-            .par_bridge()
+            .par_iter_mut()
+            .zip(rngs)
             .for_each(|(i, rng)| i.mutate(rng));
     }
 
@@ -109,51 +107,11 @@ impl<'c> Population<'c> {
     }
 }
 
-struct SwappedIter<I, T, X> {
-    iter: I,
-    last: Option<(T, T, X)>,
-}
-
-impl<I, T, X> SwappedIter<I, T, X> {
-    fn new(iter: I) -> Self {
-        Self { iter, last: None }
+fn gen_rngs(rng: &mut FastRng, count: usize) -> Vec<FastRng> {
+    let mut rngs = Vec::with_capacity(count);
+    for _ in 0..count {
+        rngs.push(rng.clone());
+        rng.jump();
     }
-}
-
-impl<I, T, X> Iterator for SwappedIter<I, T, X>
-where
-    I: Iterator<Item = (T, T, X)>,
-    T: Clone,
-    X: Clone,
-{
-    type Item = (T, T, X);
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if let Some((f, s, x)) = self.last.take() {
-            return Some((s, f, x));
-        }
-
-        match self.iter.next() {
-            Some(triple) => {
-                self.last = Some(triple.clone());
-                Some(triple)
-            }
-            None => None,
-        }
-    }
-
-    fn size_hint(&self) -> (usize, Option<usize>) {
-        let (inner_low, inner_heigh) = self.iter.size_hint();
-        let mut low = inner_low.saturating_mul(2);
-        if self.last.is_some() {
-            low = low.saturating_add(1);
-        }
-        let heigh = inner_heigh
-            .and_then(|h| h.checked_mul(2))
-            .and_then(|h| match self.last {
-                Some(_) => h.checked_add(1),
-                None => Some(h),
-            });
-        (low, heigh)
-    }
+    rngs
 }

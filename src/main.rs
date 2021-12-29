@@ -15,17 +15,23 @@ use std::{
 };
 
 use anyhow::{bail, Context};
-use cfg::{Config, Operation};
-use opt::Opt;
-use population::Population;
-use rand::{prelude::SmallRng, SeedableRng};
+use rand::SeedableRng;
 use structopt::StructOpt;
+
+use crate::{
+    cfg::{Config, Operation},
+    opt::Opt,
+    population::{FastRng, Population},
+};
 
 const PRINT_EVERY: Duration = Duration::from_secs(2);
 
 fn main() -> anyhow::Result<()> {
     let opt = Opt::from_args();
-    let rng = SmallRng::from_entropy();
+    let rng = match opt.seed {
+        Some(seed) => FastRng::seed_from_u64(seed),
+        None => FastRng::from_entropy(),
+    };
     let mut conf = Config::from_opt(&opt)?;
     parse_file(&opt.file, &mut conf)?;
 

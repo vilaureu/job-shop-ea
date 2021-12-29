@@ -9,6 +9,10 @@ pub(crate) struct Opt {
     #[structopt(name = "FILE", parse(from_os_str))]
     pub(crate) file: PathBuf,
 
+    /// Set RNG seed (unsigned integer) [default: random]
+    #[structopt(short, long)]
+    pub(crate) seed: Option<u64>,
+
     /// Set number of iterations [default: infinite]
     #[structopt(short, long)]
     pub(crate) iterations: Option<u64>,
